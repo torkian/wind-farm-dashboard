@@ -330,10 +330,6 @@ function App() {
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Site Intelligence</h2>
 
-                {/* Success: Top Performing Sites */}
-                <div className="mb-6">
-
-
                 {/* Alert: Worst Performing Sites */}
                 <div className="mb-6">
                   <FullscreenWrapper title="Sites Needing Immediate Attention">
@@ -350,7 +346,9 @@ function App() {
 
                 {/* OEM & Top Sites Analysis */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <OEMRanking data={turbineMakeMetrics} />
+                  <FullscreenWrapper title="OEM Model Reliability Ranking">
+                    <OEMRanking data={turbineMakeMetrics} />
+                  </FullscreenWrapper>
                   <FullscreenWrapper title="Top 5 Sites - Quick View">
                     <SiteRadar data={siteRadarData} />
                   </FullscreenWrapper>

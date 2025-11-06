@@ -1,3 +1,5 @@
+import { InfoButton } from '../common/InfoButton';
+
 interface SiteRadarProps {
   data: {
     site: string;
@@ -8,6 +10,14 @@ interface SiteRadarProps {
     slaRate: number;
   }[];
 }
+
+const TOP_SITES_INFO = {
+  title: 'Top Sites Performance Metrics',
+  description: 'Quick view table showing key performance indicators for the top 5 sites with the highest case volumes. Provides an at-a-glance comparison of operational metrics.',
+  formula: 'Sites selected: Top 5 by total case count\n\nMetrics displayed:\n- Open Cases: Currently unresolved issues\n- Critical Cases: High-severity issues requiring immediate attention\n- Avg Age: Average days cases have been open\n- Overdue Actions: Actions past their deadline\n- SLA Rate: % of actions completed by deadline',
+  interpretation: 'Use this to quickly compare your busiest sites. High open cases or low SLA rates indicate sites that may need additional resources. Zero critical cases is excellent performance.',
+  example: 'If Appaloosa Run shows 5 open, 1 critical, and 0% SLA:\n- The site has active issues (5 open)\n- One critical issue needs immediate attention\n- SLA of 0% means no deadlines are being met - requires intervention',
+};
 
 export function SiteRadar({ data }: SiteRadarProps) {
   if (data.length === 0) {
@@ -23,7 +33,10 @@ export function SiteRadar({ data }: SiteRadarProps) {
 
   return (
     <div className="bg-white p-6 rounded-lg border-2 border-gray-200">
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">Top Sites Performance</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-lg font-semibold text-gray-900">Top Sites Performance</h3>
+        <InfoButton {...TOP_SITES_INFO} />
+      </div>
       <p className="text-sm text-gray-600 mb-4">
         Key metrics for the {data.length} sites with most cases
       </p>
