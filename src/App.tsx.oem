@@ -24,7 +24,7 @@ import { RepeatFailures } from './components/charts/RepeatFailures';
 import { SiteScorecard } from './components/tables/SiteScorecard';
 import { BottomSites } from './components/tables/BottomSites';
 import { CaseTrend } from './components/charts/CaseTrend';
-import { OEMRanking } from './components/tables/OEMRanking';
+import { TurbineMakeComparison } from './components/charts/TurbineMakeComparison';
 import { ActionStatus } from './components/charts/ActionStatus';
 import { SeverityPie } from './components/charts/SeverityPie';
 import { BacklogGrowth } from './components/charts/BacklogGrowth';
@@ -353,8 +353,8 @@ function App() {
 
                 {/* OEM & Top Sites Analysis */}
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                  <FullscreenWrapper title="OEM Model Reliability Ranking">
-                    <OEMRanking data={turbineMakeMetrics} />
+                  <FullscreenWrapper title="Turbine Make Comparison">
+                    <TurbineMakeComparison data={turbineMakeMetrics} />
                   </FullscreenWrapper>
                   <FullscreenWrapper title="Top 5 Sites - Quick View">
                     <SiteRadar data={siteRadarData} />
