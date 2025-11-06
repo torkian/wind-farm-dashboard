@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  /* SkySpecs Brand Colors */
+  --color-primary: #24a4ab;
+  --color-primary-dark: #1d8289;
+  --color-primary-light: #2ebcc4;
+
+  /* Severity Colors */
+  --color-critical: #dc2626;
+  --color-high: #ea580c;
+  --color-medium: #f59e0b;
+  --color-low: #84cc16;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+#root {
+  min-height: 100vh;
+}
