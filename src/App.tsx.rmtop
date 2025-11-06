@@ -332,6 +332,9 @@ function App() {
 
                 {/* Success: Top Performing Sites */}
                 <div className="mb-6">
+                  <FullscreenWrapper title="Top 10 Performing Sites">
+                  </FullscreenWrapper>
+                </div>
 
 
                 {/* Alert: Worst Performing Sites */}

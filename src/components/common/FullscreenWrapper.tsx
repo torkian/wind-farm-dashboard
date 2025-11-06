@@ -41,7 +41,7 @@ export function FullscreenWrapper({ children, title }: FullscreenWrapperProps) {
         className="absolute top-2 right-2 z-10 p-2 bg-white border-2 border-[#24a4ab] rounded-lg shadow-lg hover:bg-[#24a4ab] hover:text-white transition-all"
         title="Click to fullscreen"
       >
-        <Maximize2 size={18} className="text-[#24a4ab] hover:text-white" strokeWidth={2.5} />
+        <Maximize2 size={18} className="text-[#24a4ab]" strokeWidth={2.5} />
       </button>
       {children}
     </div>
