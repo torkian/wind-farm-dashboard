@@ -6,10 +6,11 @@ import {
   Settings,
   MapPin,
   CheckSquare,
+  Link,
   LucideIcon,
 } from 'lucide-react';
 
-export type TabId = 'overview' | 'trends' | 'sites' | 'components' | 'map' | 'actions';
+export type TabId = 'overview' | 'trends' | 'sites' | 'components' | 'map' | 'actionlinks' | 'actions';
 
 interface Tab {
   id: TabId;
@@ -28,6 +29,7 @@ const TABS: Tab[] = [
   { id: 'sites', label: 'Site Intelligence', icon: Building2 },
   { id: 'components', label: 'Component Analysis', icon: Settings },
   { id: 'map', label: 'Geographic Map', icon: MapPin },
+  { id: 'actionlinks', label: 'Action-Case Links', icon: Link },
   { id: 'actions', label: 'Action Queue', icon: CheckSquare },
 ];
 

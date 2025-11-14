@@ -668,3 +668,220 @@ export function computeSiteRadarMetrics(cases: Case[], actions: Action[], siteId
     };
   });
 }
+
+/**
+ * Computes changes since yesterday (last 24 hours)
+ */
+export function computeDailyChanges(cases: Case[], actions: Action[], hours: number = 24) {
+  const now = new Date();
+  const lookbackTime = new Date(now.getTime() - (hours * 60 * 60 * 1000));
+  const timeStart = lookbackTime;
+
+  // New cases created since yesterday
+  const newCases = cases.filter(c =>
+    c.createdAt >= timeStart
+  );
+
+  // New actions created since yesterday
+  const newActions = actions.filter(a =>
+    a.createdAt >= timeStart
+  );
+
+  // Cases closed since yesterday
+  const closedCases = cases.filter(c =>
+    c.closedAt && c.closedAt >= timeStart
+  );
+
+  // Priority escalations (priority changed in last 24h)
+  const priorityEscalations = actions.filter(a =>
+    a.priorityChanged && a.updatedAt >= timeStart
+  );
+
+  return {
+    newCases: {
+      total: newCases.length,
+      bySeverity: {
+        Critical: newCases.filter(c => c.severity === 'Critical').length,
+        High: newCases.filter(c => c.severity === 'High').length,
+        Medium: newCases.filter(c => c.severity === 'Medium').length,
+        Low: newCases.filter(c => c.severity === 'Low').length,
+      },
+    },
+    newActions: {
+      total: newActions.length,
+      byStatus: {
+        Open: newActions.filter(a => a.status === 'Open').length,
+        'In Progress': newActions.filter(a => a.status === 'In Progress').length,
+        Closed: newActions.filter(a => a.status === 'Closed').length,
+        Blocked: newActions.filter(a => a.status === 'Blocked').length,
+      },
+    },
+    closedCases: closedCases.length,
+    priorityEscalations: {
+      total: priorityEscalations.length,
+      actions: priorityEscalations.slice(0, 10), // Top 10 recent escalations
+    },
+    newCritical: newCases.filter(c => c.severity === 'Critical').length,
+    newOverdue: newActions.filter(a => a.isOverdue).length,
+  };
+}
+
+/**
+ * Computes action-case distribution and relationship metrics
+ */
+export function computeActionCaseDistribution(cases: Case[], actions: Action[]) {
+  // Group actions by case
+  const actionsByCase = new Map<string, Action[]>();
+  
+  actions.forEach(action => {
+    if (!actionsByCase.has(action.caseId)) {
+      actionsByCase.set(action.caseId, []);
+    }
+    actionsByCase.get(action.caseId)!.push(action);
+  });
+
+  // Count distribution
+  const distribution = [
+    { actionsCount: '1', cases: 0 },
+    { actionsCount: '2', cases: 0 },
+    { actionsCount: '3', cases: 0 },
+    { actionsCount: '4', cases: 0 },
+    { actionsCount: '5+', cases: 0 },
+  ];
+
+  actionsByCase.forEach((acts, caseId) => {
+    const count = acts.length;
+    if (count === 1) distribution[0].cases++;
+    else if (count === 2) distribution[1].cases++;
+    else if (count === 3) distribution[2].cases++;
+    else if (count === 4) distribution[3].cases++;
+    else distribution[4].cases++;
+  });
+
+  // Build detailed case list with actions
+  const casesWithActions = cases
+    .map(c => ({
+      case: c,
+      actions: actionsByCase.get(c.id) || [],
+      actionCount: (actionsByCase.get(c.id) || []).length,
+    }))
+    .filter(item => item.actionCount > 0) // Only cases with actions
+    .sort((a, b) => b.actionCount - a.actionCount); // Most actions first
+
+  // Orphaned actions (no matching case)
+  const validCaseIds = new Set(cases.map(c => c.id));
+  const orphanedActions = actions.filter(a => !validCaseIds.has(a.caseId));
+
+  return {
+    distribution,
+    casesWithActions,
+    orphanedActions,
+    totalActions: actions.length,
+    totalCases: cases.length,
+    casesWithMultipleActions: casesWithActions.filter(c => c.actionCount > 1).length,
+    avgActionsPerCase: casesWithActions.length > 0 
+      ? actions.length / casesWithActions.length 
+      : 0,
+  };
+}
+
+/**
+ * Computes action creation trend over time (daily aggregation)
+ */
+export function computeActionTrend(actions: Action[], days: number = 30) {
+  const now = new Date();
+  const trend: { date: string; Critical: number; High: number; Medium: number; Low: number; total: number }[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const day = subDays(now, i);
+    const dayStart = startOfDay(day);
+    const dayEnd = endOfDay(day);
+
+    const dayActions = actions.filter(a =>
+      isWithinInterval(a.createdAt, { start: dayStart, end: dayEnd })
+    );
+
+    // Group by priority (handle both naming conventions)
+    const byPriority = {
+      Critical: dayActions.filter(a => a.priority === 'Critical' || a.priority === 'P1').length,
+      High: dayActions.filter(a => a.priority === 'High' || a.priority === 'P2').length,
+      Medium: dayActions.filter(a => a.priority === 'Medium' || a.priority === 'P3').length,
+      Low: dayActions.filter(a => a.priority === 'Low' || a.priority === 'P4').length,
+    };
+
+    trend.push({
+      date: day.toISOString().split('T')[0],
+      ...byPriority,
+      total: dayActions.length,
+    });
+  }
+
+  return trend;
+}
+
+/**
+ * Computes priority distribution for actions
+ */
+export function computePriorityDistribution(actions: Action[]) {
+  const distribution = {
+    Critical: 0,
+    High: 0,
+    Medium: 0,
+    Low: 0,
+  };
+
+  actions.forEach(a => {
+    if (a.priority === 'Critical' || a.priority === 'P1') distribution.Critical++;
+    else if (a.priority === 'High' || a.priority === 'P2') distribution.High++;
+    else if (a.priority === 'Medium' || a.priority === 'P3') distribution.Medium++;
+    else distribution.Low++;
+  });
+
+  const total = actions.length;
+
+  return Object.entries(distribution).map(([name, value]) => ({
+    name,
+    value,
+    percentage: total > 0 ? (value / total) * 100 : 0,
+  }));
+}
+
+/**
+ * Computes action backlog growth over time
+ */
+export function computeActionBacklogGrowth(actions: Action[], days: number = 90) {
+  const now = new Date();
+  const growth: { date: string; created: number; closed: number; openActions: number }[] = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const day = subDays(now, i);
+    const dayStart = startOfDay(day);
+    const dayEnd = endOfDay(day);
+
+    // Actions created on this day
+    const created = actions.filter(a =>
+      isWithinInterval(a.createdAt, { start: dayStart, end: dayEnd })
+    ).length;
+
+    // Actions closed on this day  
+    const closed = actions.filter(a =>
+      a.status === 'Closed' &&
+      isWithinInterval(a.updatedAt, { start: dayStart, end: dayEnd })
+    ).length;
+
+    // Open actions at end of this day
+    const openActions = actions.filter(a =>
+      a.createdAt <= dayEnd && 
+      (a.status !== 'Closed' || a.updatedAt > dayEnd)
+    ).length;
+
+    growth.push({
+      date: day.toISOString().split('T')[0],
+      created,
+      closed,
+      openActions,
+    });
+  }
+
+  return growth;
+}

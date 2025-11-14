@@ -15,8 +15,15 @@ import {
   computeSiteRadarMetrics,
   filterCases,
   filterActions,
+  computeDailyChanges,
+  computeActionCaseDistribution,
+  computeActionTrend,
+  computePriorityDistribution,
+  computeActionBacklogGrowth,
 } from './utils/kpi';
 import { ExecSnapshot } from './components/kpi/ExecSnapshot';
+import { DailyChanges } from './components/kpi/DailyChanges';
+import { PriorityEscalations } from './components/tables/PriorityEscalations';
 import { FilterPanel } from './components/filters/FilterPanel';
 import { RiskHeatmap } from './components/charts/RiskHeatmap';
 import { CaseFunnel } from './components/charts/CaseFunnel';
@@ -24,14 +31,18 @@ import { RepeatFailures } from './components/charts/RepeatFailures';
 import { SiteScorecard } from './components/tables/SiteScorecard';
 import { BottomSites } from './components/tables/BottomSites';
 import { CaseTrend } from './components/charts/CaseTrend';
+import { ActionTrend } from './components/charts/ActionTrend';
 import { OEMRanking } from './components/tables/OEMRanking';
 import { ActionStatus } from './components/charts/ActionStatus';
 import { SeverityPie } from './components/charts/SeverityPie';
+import { PriorityDistribution } from './components/charts/PriorityDistribution';
 import { BacklogGrowth } from './components/charts/BacklogGrowth';
+import { ActionBacklogGrowth } from './components/charts/ActionBacklogGrowth';
 import { SiteRadar } from './components/charts/SiteRadar';
 import { ComponentBreakdown } from './components/charts/ComponentBreakdown';
 import { SiteMap } from './components/charts/SiteMap';
 import { ActionQueue } from './components/tables/ActionQueue';
+import { ActionCaseRelationship } from './components/tabs/ActionCaseRelationship';
 import { DrilldownPanel } from './components/drilldown/DrilldownPanel';
 import { CaseDetail } from './components/drilldown/CaseDetail';
 import { FullscreenWrapper } from './components/common/FullscreenWrapper';
@@ -58,6 +69,7 @@ function App() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [changeTimeRange, setChangeTimeRange] = useState(24); // Default 24 hours
 
   // File upload state
   const [casesFile, setCasesFile] = useState<File | null>(null);
@@ -83,6 +95,12 @@ function App() {
     if (cases.length === 0) return null;
     return computeKPIs(cases, actions, filters);
   }, [cases, actions, filters]);
+
+  // Compute daily changes (configurable time range)
+  const dailyChanges = useMemo(() => {
+    if (cases.length === 0) return null;
+    return computeDailyChanges(cases, actions, changeTimeRange);
+  }, [cases, actions, changeTimeRange]);
 
   // Apply filters to get filtered datasets
   const filteredCases = useMemo(() => filterCases(cases, filters), [cases, filters]);
@@ -125,6 +143,14 @@ function App() {
   const severityDist = useMemo(() => computeSeverityDistribution(filteredCases), [filteredCases]);
   const topSites = useMemo(() => siteScores.slice(0, 5).map(s => s.siteId), [siteScores]);
   const siteRadarData = useMemo(() => computeSiteRadarMetrics(filteredCases, filteredActions, topSites), [filteredCases, filteredActions, topSites]);
+
+  // Compute action-case relationships (use filtered data)
+  const actionCaseData = useMemo(() => computeActionCaseDistribution(filteredCases, filteredActions), [filteredCases, filteredActions]);
+
+  // Compute action-focused trend data
+  const actionTrend = useMemo(() => computeActionTrend(filteredActions, 30), [filteredActions]);
+  const priorityDist = useMemo(() => computePriorityDistribution(filteredActions), [filteredActions]);
+  const actionBacklog = useMemo(() => computeActionBacklogGrowth(filteredActions, 90), [filteredActions]);
 
   // Handle file upload
   const handleUpload = async () => {
@@ -284,6 +310,22 @@ function App() {
 
             {/* OVERVIEW TAB */}
             <TabPanel activeTab={activeTab} tabId="overview">
+              {/* Daily Changes - What's New Since Yesterday */}
+              {dailyChanges && (
+                <DailyChanges
+                  changes={dailyChanges}
+                  timeRange={changeTimeRange}
+                  onTimeRangeChange={setChangeTimeRange}
+                />
+              )}
+
+              {/* Priority Escalations Table */}
+              {dailyChanges && dailyChanges.priorityEscalations.total > 0 && (
+                <div className="mb-8">
+                  <PriorityEscalations actions={dailyChanges.priorityEscalations.actions} />
+                </div>
+              )}
+
               {/* Executive Snapshot */}
               {kpis && <ExecSnapshot kpis={kpis} />}
 
@@ -307,21 +349,47 @@ function App() {
             <TabPanel activeTab={activeTab} tabId="trends">
               <div className="mb-8">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Trends & Analytics</h2>
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-                  <FullscreenWrapper title="Case Creation Trend (30d)">
-                    <CaseTrend data={caseTrend} />
+
+                {/* Action Trends */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Action Trends</h3>
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+                    <FullscreenWrapper title="Action Creation Trend (30d)">
+                      <ActionTrend data={actionTrend} />
+                    </FullscreenWrapper>
+                    <FullscreenWrapper title="Action Priority Distribution">
+                      <PriorityDistribution data={priorityDist} />
+                    </FullscreenWrapper>
+                  </div>
+
+                  <FullscreenWrapper title="Action Backlog Growth (90d)">
+                    <ActionBacklogGrowth data={actionBacklog} />
                   </FullscreenWrapper>
-                  <FullscreenWrapper title="Severity Distribution">
-                    <SeverityPie data={severityDist} />
+                </div>
+
+                {/* Case Trends */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Case Trends</h3>
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+                    <FullscreenWrapper title="Case Creation Trend (30d)">
+                      <CaseTrend data={caseTrend} />
+                    </FullscreenWrapper>
+                    <FullscreenWrapper title="Case Severity Distribution">
+                      <SeverityPie data={severityDist} />
+                    </FullscreenWrapper>
+                  </div>
+
+                  <FullscreenWrapper title="Case Backlog Growth (90d)">
+                    <BacklogGrowth data={backlogGrowth} />
                   </FullscreenWrapper>
+                </div>
+
+                {/* Action Status Overview */}
+                <div className="mb-6">
                   <FullscreenWrapper title="Action Status Distribution">
                     <ActionStatus actions={filteredActions} />
                   </FullscreenWrapper>
                 </div>
-
-                <FullscreenWrapper title="Backlog Growth Trend (90d)">
-                  <BacklogGrowth data={backlogGrowth} />
-                </FullscreenWrapper>
               </div>
             </TabPanel>
 
@@ -382,6 +450,24 @@ function App() {
                 <FullscreenWrapper title="Interactive Site Map">
                   <SiteMap sites={sites} cases={filteredCases} onSiteClick={handleSiteClick} />
                 </FullscreenWrapper>
+              </div>
+            </TabPanel>
+
+            {/* ACTION-CASE LINKS TAB */}
+            <TabPanel activeTab={activeTab} tabId="actionlinks">
+              <div className="mb-8">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Action-Case Relationship Analysis</h2>
+                <ActionCaseRelationship
+                  distribution={actionCaseData.distribution}
+                  casesWithActions={actionCaseData.casesWithActions}
+                  orphanedActions={actionCaseData.orphanedActions}
+                  stats={{
+                    totalActions: actionCaseData.totalActions,
+                    totalCases: actionCaseData.totalCases,
+                    casesWithMultipleActions: actionCaseData.casesWithMultipleActions,
+                    avgActionsPerCase: actionCaseData.avgActionsPerCase,
+                  }}
+                />
               </div>
             </TabPanel>
 
