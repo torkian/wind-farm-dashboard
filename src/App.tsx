@@ -47,7 +47,8 @@ import { DrilldownPanel } from './components/drilldown/DrilldownPanel';
 import { CaseDetail } from './components/drilldown/CaseDetail';
 import { FullscreenWrapper } from './components/common/FullscreenWrapper';
 import { TabNavigation, TabPanel, TabId } from './components/common/TabNavigation';
-
+import { IssueTypeToggle } from './components/common/IssueTypeToggle';
+import { IssueType, filterByIssueType } from './utils/issueTypeFilter';
 import type { Case } from './types';
 
 function App() {
@@ -70,6 +71,7 @@ function App() {
   const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [changeTimeRange, setChangeTimeRange] = useState(24); // Default 24 hours
+  const [issueType, setIssueType] = useState<IssueType>('all'); // CMS Hardware vs Mechanical
 
   // File upload state
   const [casesFile, setCasesFile] = useState<File | null>(null);
@@ -91,20 +93,30 @@ function App() {
   }, [filters, persistFilters]);
 
   // Compute KPIs
+  // Apply issue type filter FIRST (CMS Hardware vs Mechanical)
+  const issueFilteredCases = useMemo(() => filterByIssueType(cases, issueType), [cases, issueType]);
+
+  // Filter actions based on their linked case's issue type
+  const issueFilteredActions = useMemo(() => {
+    const validCaseIds = new Set(issueFilteredCases.map(c => c.id));
+    return actions.filter(a => validCaseIds.has(a.caseId));
+  }, [actions, issueFilteredCases]);
+
+  // Then apply regular filters
+  const filteredCases = useMemo(() => filterCases(issueFilteredCases, filters), [issueFilteredCases, filters]);
+  const filteredActions = useMemo(() => filterActions(issueFilteredActions, filters), [issueFilteredActions, filters]);
+
   const kpis = useMemo(() => {
     if (cases.length === 0) return null;
-    return computeKPIs(cases, actions, filters);
-  }, [cases, actions, filters]);
+    return computeKPIs(issueFilteredCases, issueFilteredActions, filters);
+  }, [issueFilteredCases, issueFilteredActions, filters]);
 
   // Compute daily changes (configurable time range)
   const dailyChanges = useMemo(() => {
     if (cases.length === 0) return null;
-    return computeDailyChanges(cases, actions, changeTimeRange);
-  }, [cases, actions, changeTimeRange]);
+    return computeDailyChanges(issueFilteredCases, issueFilteredActions, changeTimeRange);
+  }, [issueFilteredCases, issueFilteredActions, changeTimeRange]);
 
-  // Apply filters to get filtered datasets
-  const filteredCases = useMemo(() => filterCases(cases, filters), [cases, filters]);
-  const filteredActions = useMemo(() => filterActions(actions, filters), [actions, filters]);
 
   // Compute heatmap data
   const heatmapData = useMemo(() => {
@@ -297,6 +309,9 @@ function App() {
           </div>
         ) : (
           <>
+            {/* Issue Type Toggle - CMS Hardware vs Mechanical */}
+            <IssueTypeToggle issueType={issueType} onIssueTypeChange={setIssueType} />
+
             {/* Tab Navigation */}
             <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
