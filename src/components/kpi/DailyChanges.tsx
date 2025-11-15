@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { TrendingUp, AlertCircle, CheckCircle, Clock, Bell, ArrowUp } from 'lucide-react';
 
 interface DailyChangesProps {
-  onTimeRangeChange: (hours: number) => void;
-  timeRange: number;
+  startDate: Date | null;
+  endDate: Date | null;
   changes: {
     newCases: {
       total: number;
@@ -28,84 +28,28 @@ interface DailyChangesProps {
   };
 }
 
-export function DailyChanges({ changes, onTimeRangeChange, timeRange }: DailyChangesProps) {
-  const [isCustom, setIsCustom] = useState(false);
-  const [customHours, setCustomHours] = useState(timeRange);
+export function DailyChanges({ changes, startDate, endDate }: DailyChangesProps) {
+  const getDateRangeLabel = () => {
+    if (!startDate || !endDate) return 'All Time';
 
-  const handlePresetChange = (hours: number) => {
-    setIsCustom(false);
-    onTimeRangeChange(hours);
-  };
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
 
-  const handleCustomSubmit = () => {
-    if (customHours > 0 && customHours <= 720) { // Max 30 days
-      onTimeRangeChange(customHours);
-    }
-  };
+    if (daysDiff === 1) return 'Last 24 Hours';
+    if (daysDiff === 7) return 'Last 7 Days';
+    if (daysDiff === 30) return 'Last 30 Days';
+    if (daysDiff === 90) return 'Last 90 Days';
 
-  const getTimeLabel = () => {
-    if (timeRange === 24) return 'Yesterday';
-    if (timeRange === 48) return 'Last 2 Days';
-    if (timeRange === 168) return 'Last Week';
-    return `Last ${timeRange} Hours`;
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
   };
 
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Clock size={24} className="text-[#24a4ab]" />
-          <h2 className="text-xl font-bold text-gray-900">What's Changed - {getTimeLabel()}</h2>
-        </div>
-
-        {/* Time Range Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Lookback period:</span>
-          <div className="flex gap-2">
-            <button
-              onClick={() => handlePresetChange(24)}
-              className={`px-3 py-1 text-sm rounded ${
-                timeRange === 24 ? 'bg-[#24a4ab] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              24h
-            </button>
-            <button
-              onClick={() => handlePresetChange(48)}
-              className={`px-3 py-1 text-sm rounded ${
-                timeRange === 48 ? 'bg-[#24a4ab] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              48h
-            </button>
-            <button
-              onClick={() => handlePresetChange(168)}
-              className={`px-3 py-1 text-sm rounded ${
-                timeRange === 168 ? 'bg-[#24a4ab] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              7 days
-            </button>
-            <div className="flex items-center gap-1">
-              <input
-                type="number"
-                min="1"
-                max="720"
-                value={customHours}
-                onChange={(e) => setCustomHours(Number(e.target.value))}
-                onFocus={() => setIsCustom(true)}
-                className="w-16 px-2 py-1 text-sm border border-gray-300 rounded"
-                placeholder="hrs"
-              />
-              <button
-                onClick={handleCustomSubmit}
-                className="px-3 py-1 text-sm bg-[#24a4ab] text-white rounded hover:bg-[#1d8289]"
-              >
-                Go
-              </button>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center gap-2 mb-4">
+        <Clock size={24} className="text-[#24a4ab]" />
+        <h2 className="text-xl font-bold text-gray-900">What's Changed - {getDateRangeLabel()}</h2>
+        <span className="text-sm text-gray-600">(Use filter panel to adjust date range)</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

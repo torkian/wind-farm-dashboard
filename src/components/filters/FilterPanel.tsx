@@ -45,34 +45,76 @@ export function FilterPanel({ filters, filterOptions, onFilterChange, onReset }:
 
       {/* Filter Dropdowns Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {/* Date Range Preset */}
-        <div>
+        {/* Date Range Pickers */}
+        <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-800 mb-1">
             Date Range
           </label>
-          <select
-            value={filters.dateRange.preset}
-            onChange={(e) => {
-              const preset = e.target.value as DashboardFilters['dateRange']['preset'];
-              let start: Date | null = new Date();
-              const end = new Date();
-
-              if (preset === 'last7') start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-              else if (preset === 'last30') start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-              else if (preset === 'last90') start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-              else if (preset === 'allTime') start = null;
-
-              onFilterChange({
-                dateRange: { start, end: preset === 'allTime' ? null : end, preset },
-              });
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-          >
-            <option className="text-black" value="last7">Last 7 days</option>
-            <option className="text-black" value="last30">Last 30 days</option>
-            <option className="text-black" value="last90">Last 90 days</option>
-            <option className="text-black" value="allTime">All time</option>
-          </select>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={filters.dateRange.start?.toISOString().split('T')[0] || ''}
+              onChange={(e) => {
+                const start = e.target.value ? new Date(e.target.value) : null;
+                onFilterChange({
+                  dateRange: { ...filters.dateRange, start, preset: 'custom' },
+                });
+              }}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+            <span className="text-gray-600 self-center">to</span>
+            <input
+              type="date"
+              value={filters.dateRange.end?.toISOString().split('T')[0] || ''}
+              onChange={(e) => {
+                const end = e.target.value ? new Date(e.target.value) : new Date();
+                onFilterChange({
+                  dateRange: { ...filters.dateRange, end, preset: 'custom' },
+                });
+              }}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div className="flex gap-1 mt-1">
+            <button
+              onClick={() => {
+                const end = new Date();
+                const start = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                onFilterChange({ dateRange: { start, end, preset: 'last7' } });
+              }}
+              className="px-2 py-1 text-xs bg-gray-100 hover:bg-[#24a4ab] hover:text-white rounded"
+            >
+              7d
+            </button>
+            <button
+              onClick={() => {
+                const end = new Date();
+                const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+                onFilterChange({ dateRange: { start, end, preset: 'last30' } });
+              }}
+              className="px-2 py-1 text-xs bg-gray-100 hover:bg-[#24a4ab] hover:text-white rounded"
+            >
+              30d
+            </button>
+            <button
+              onClick={() => {
+                const end = new Date();
+                const start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+                onFilterChange({ dateRange: { start, end, preset: 'last90' } });
+              }}
+              className="px-2 py-1 text-xs bg-gray-100 hover:bg-[#24a4ab] hover:text-white rounded"
+            >
+              90d
+            </button>
+            <button
+              onClick={() => {
+                onFilterChange({ dateRange: { start: null, end: null, preset: 'allTime' } });
+              }}
+              className="px-2 py-1 text-xs bg-gray-100 hover:bg-[#24a4ab] hover:text-white rounded"
+            >
+              All
+            </button>
+          </div>
         </div>
 
         {/* Sites */}

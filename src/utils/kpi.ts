@@ -672,29 +672,28 @@ export function computeSiteRadarMetrics(cases: Case[], actions: Action[], siteId
 /**
  * Computes changes since yesterday (last 24 hours)
  */
-export function computeDailyChanges(cases: Case[], actions: Action[], hours: number = 24) {
-  const now = new Date();
-  const lookbackTime = new Date(now.getTime() - (hours * 60 * 60 * 1000));
-  const timeStart = lookbackTime;
+export function computeDailyChanges(cases: Case[], actions: Action[], startDate: Date | null, endDate: Date | null) {
+  const timeStart = startDate || new Date(0); // Use filter start date or epoch
+  const timeEnd = endDate || new Date(); // Use filter end date or now
 
   // New cases created since yesterday
   const newCases = cases.filter(c =>
-    c.createdAt >= timeStart
+    c.createdAt >= timeStart && c.createdAt <= timeEnd
   );
 
   // New actions created since yesterday
   const newActions = actions.filter(a =>
-    a.createdAt >= timeStart
+    a.createdAt >= timeStart && a.createdAt <= timeEnd
   );
 
   // Cases closed since yesterday
   const closedCases = cases.filter(c =>
-    c.closedAt && c.closedAt >= timeStart
+    c.closedAt && c.closedAt >= timeStart && c.closedAt <= timeEnd
   );
 
   // Priority escalations (priority changed in last 24h)
   const priorityEscalations = actions.filter(a =>
-    a.priorityChanged && a.updatedAt >= timeStart
+    a.priorityChanged && a.updatedAt >= timeStart && a.updatedAt <= timeEnd
   );
 
   return {

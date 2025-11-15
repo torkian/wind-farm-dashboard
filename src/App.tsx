@@ -70,7 +70,7 @@ function App() {
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [changeTimeRange, setChangeTimeRange] = useState(24); // Default 24 hours
+  
   const [issueType, setIssueType] = useState<IssueType>('all'); // CMS Hardware vs Mechanical
 
   // File upload state
@@ -114,8 +114,8 @@ function App() {
   // Compute daily changes (configurable time range)
   const dailyChanges = useMemo(() => {
     if (cases.length === 0) return null;
-    return computeDailyChanges(issueFilteredCases, issueFilteredActions, changeTimeRange);
-  }, [issueFilteredCases, issueFilteredActions, changeTimeRange]);
+    return computeDailyChanges(issueFilteredCases, issueFilteredActions, filters.dateRange.start, filters.dateRange.end);
+  }, [issueFilteredCases, issueFilteredActions, filters.dateRange]);
 
 
   // Compute heatmap data
@@ -329,8 +329,8 @@ function App() {
               {dailyChanges && (
                 <DailyChanges
                   changes={dailyChanges}
-                  timeRange={changeTimeRange}
-                  onTimeRangeChange={setChangeTimeRange}
+                  startDate={filters.dateRange.start}
+                  endDate={filters.dateRange.end}
                 />
               )}
 
